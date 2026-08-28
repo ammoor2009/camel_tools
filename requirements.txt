@@ -1,2 +1,2 @@
-streamlit
-camel-tools
+streamlit>=1.30.0
+camel-tools>=1.5.6
