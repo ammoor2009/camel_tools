@@ -1,5 +1,6 @@
 # مرشد الإعلال والإبدال التعليمي - الواجهة التفاعلية
 import streamlit as st
+import subprocess
 from camel_tools.morphology.database import MorphologyDB
 from camel_tools.morphology.analyzer import Analyzer
 
@@ -99,10 +100,15 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# 3. تحميل المحرك الصرفي وتخزينه في الذاكرة لتسريع الأداء
+# 3. تحميل المحرك الصرفي وتنزيل بيانات المكتبة تلقائياً إذا لم تكن موجودة
 @st.cache_resource
 def load_analyzer():
-    db = MorphologyDB.builtin_db()
+    try:
+        db = MorphologyDB.builtin_db()
+    except Exception:
+        with st.spinner("جاري تحميل البيانات الصرفية لأول مرة... قد يستغرق ذلك نحو دقيقة واحدة."):
+            subprocess.run(["camel_data", "-i", "defaults"], check=True)
+        db = MorphologyDB.builtin_db()
     return Analyzer(db)
 
 analyzer = load_analyzer()
@@ -204,22 +210,7 @@ st.markdown("""
 
 # 6. أدوات إدخال الكلمة
 st.subheader("🔍 أدخل الكلمة للمعاينة الصرفية")
-col1, col2 = st.columns([3, 1])
-
-with col1:
-    user_input = st.text_input("اكتب الفعل هنا (مشكولاً أو غير مشكول):", value="اصطبر", label_visibility="collapsed")
-
-with col2:
-    analyze_btn = st.button("تحليل الكلمة", use_container_width=True, type="primary")
-
-# أزرار شواهد سريعة للتجربة
-st.caption("💡 شواهد تجريبية سريعة:")
-q_cols = st.columns(6)
-examples = ["اصطبر", "ازدحم", "اتصل", "قال", "يقول", "عد"]
-
-for idx, ex in enumerate(examples):
-    if q_cols[idx].button(ex, use_container_width=True):
-        user_input = ex
+user_input = st.text_input("اكتب الفعل هنا (مشكولاً أو غير مشكول):", value="اصطبر")
 
 # 7. تنفيذ التحليل وعرض النتائج
 if user_input:
