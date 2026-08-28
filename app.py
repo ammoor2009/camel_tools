@@ -133,7 +133,7 @@ def load_analyzer():
 
 analyzer = load_analyzer()
 
-# تحويل أرقام الميزان (1, 2, 3) إلى حروف (ف, ع, ل)
+# تحويل أرقام الميزان (1, 2, 3) إلى حروف قياسية (ف, ع, ل)
 def clean_pattern(pattern_str):
     if not pattern_str or pattern_str == "غير محدد":
         return "غير محدد"
@@ -163,7 +163,7 @@ def sanitize_root(root_raw, word):
         
     return [r1, r2, r3]
 
-# 4. محرك تحليل الإعلال والإبدال التعليمي
+# 4. محرك تحليل الإعلال والإبدال التعليمي القياسي
 def explain_morphology(word, root_raw, pattern):
     r1, r2, r3 = sanitize_root(root_raw, word)
     clean_root_str = f"{r1} . {r2} . {r3}"
@@ -193,14 +193,13 @@ def explain_morphology(word, root_raw, pattern):
 
     # 3. إبدال الواو تاءً وإدغامها (مثل: اتصل، اتقى)
     if word.startswith(('ات', 'إت', 'اِت')) or 'تَّ' in word or 'تّ' in word:
-        educational_pattern = "اِفْتَعَى" if word.endswith(('ى', 'ي')) else "اِفْتَعَلَ"
         return {
             "نوع التغيير": "إبدال وإدغام (إبدال الواو تاءً)",
             "شارة": "badge-ibdal",
             "الجذر": clean_root_str,
-            "الوزن": educational_pattern,
+            "الوزن": "اِفْتَعَلَ",
             "الأصل المفترض": f"اِوْتَ{r2}َ{r3}",
-            "التعليل التعليمي": f"وقعت الواو فاءً في صيغة ({educational_pattern})، فُقلبت الواو تاءً وأُدغمت في تاء افتعل للتخفيف، فصارت ({word})."
+            "التعليل التعليمي": f"وقعت الواو فاءً في صيغة (اِفْتَعَلَ)، فُقلبت الواو تاءً وأُدغمت في تاء افتعل للتخفيف، فصارت ({word})."
         }
 
     # 4. الإدغام الصرفي في المضعّف (مثل: عدَّ، استقرَّ)
@@ -228,15 +227,14 @@ def explain_morphology(word, root_raw, pattern):
             "التعليل التعليمي": f"تحركت عين الفعل المعتلة ({r2}) وكان ما قبلها ساكناً صحيحاً ({r1})، فُنقلت حركة العين إلى الساكن قبلها لثقل الحركة على حرف العلة، فصارت ({word})."
         }
 
-    # 6. الإعلال بالقلب (مثل: قال، دعا)
+    # 6. الإعلال بالقلب (مثل: قال، دعا، رمى)
     if (r2 in ['و', 'ي']) and ('ا' in word or word.endswith('ى')) and len(word) <= 4:
-        educational_pattern = "فَعَلَ" if word.endswith('ا') else "فَعَى"
         return {
             "نوع التغيير": "إعلال بالقلب (قلب الواو/الياء ألفاً)",
             "شارة": "badge-ilal",
             "الجذر": clean_root_str,
-            "الوزن": educational_pattern,
-            "الأصل المفترض": f"{r1}َوَلَ",
+            "الوزن": "فَعَلَ",
+            "الأصل المفترض": f"{r1}َوَلَ" if r2 == 'و' else f"{r1}َيَرَ",
             "التعليل التعليمي": f"تحركت عين/لام الفعل المعتلة وانفتح ما قبلها ({r1}َ)، فُقلبت ألفاً طلباً للتخفيف، فصارت ({word})."
         }
 
@@ -270,7 +268,7 @@ st.markdown("""
 
 # 6. إدخال الكلمة
 st.subheader("🔍 أدخل الكلمة للمعاينة الصرفية")
-user_input = st.text_input("اكتب الفعل هنا (مثل: اتقى، اصطبر، يقول، عد):", value="اتقى")
+user_input = st.text_input("اكتب الفعل هنا (مثل: اتقى، قال، اصطبر، يقول، عد):", value="اتقى")
 
 # 7. عرض النتائج
 if user_input:
