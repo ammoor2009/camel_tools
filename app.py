@@ -64,7 +64,6 @@ st.markdown("""
         margin-top: 0;
     }
 
-    /* أوسمة التمييز بدون خلفيات سوداء */
     .custom-tag {
         display: inline-block;
         background-color: #eef2f7;
@@ -134,23 +133,18 @@ def load_analyzer():
 
 analyzer = load_analyzer()
 
-# دالة تحويل أرقام الميزان الصرفي (1, 2, 3) إلى أحرف الميزان (ف, ع, ل)
+# تحويل أرقام الميزان (1, 2, 3) إلى حروف (ف, ع, ل)
 def clean_pattern(pattern_str):
     if not pattern_str or pattern_str == "غير محدد":
         return "غير محدد"
     
-    replacements = {
-        '1': 'ف',
-        '2': 'ع',
-        '3': 'ل',
-        '4': 'ل'
-    }
+    replacements = {'1': 'ف', '2': 'ع', '3': 'ل', '4': 'ل'}
     for num, char in replacements.items():
         pattern_str = pattern_str.replace(num, char)
         
     return pattern_str
 
-# تنظيف وتجهيز حروف الجذر المعطوبة من المحرك
+# تنظيف وتجهيز حروف الجذر
 def sanitize_root(root_raw, word):
     if not root_raw or '.' not in root_raw:
         return ['و', 'ق', 'ي']
@@ -160,7 +154,6 @@ def sanitize_root(root_raw, word):
     r2 = parts[1] if len(parts) > 1 else 'ق'
     r3 = parts[2] if len(parts) > 2 else 'ي'
 
-    # معالجة رمز # المعتل في الكلمات المبدوءة بتاء مشددة (مثل اتصل، اتقى)
     if r1 == '#':
         r1 = 'و'
     if r3 == '#':
@@ -174,75 +167,86 @@ def sanitize_root(root_raw, word):
 def explain_morphology(word, root_raw, pattern):
     r1, r2, r3 = sanitize_root(root_raw, word)
     clean_root_str = f"{r1} . {r2} . {r3}"
+    fallback_pattern = clean_pattern(pattern)
 
-    # 1. إبدال تاء افتعل طاءً
+    # 1. إبدال تاء افتعل طاءً (مثل: اصطبر)
     if r1 in ['ص', 'ض', 'ط', 'ظ'] and 'ط' in word and not word.startswith('ط'):
         return {
             "نوع التغيير": "إبدال صرفي (إبدال تاء افتعل طاءً)",
             "شارة": "badge-ibdal",
             "الجذر": clean_root_str,
+            "الوزن": "اِفْتَعَلَ",
             "الأصل المفترض": f"اِ{r1}ْتَ{r2}َ{r3}",
             "التعليل التعليمي": f"وقعت تاء صيغة (اِفْتَعَلَ) بعد حرف الإطباق ({r1})، فُقلبت التاء طاءً لتناسب الإطباق صوتاً، فصارت ({word})."
         }
 
-    # 2. إبدال تاء افتعل دالاً
+    # 2. إبدال تاء افتعل دالاً (مثل: ازدجر)
     if r1 in ['ز', 'ذ', 'د'] and 'د' in word and not word.startswith('د'):
         return {
             "نوع التغيير": "إبدال صرفي (إبدال تاء افتعل دالاً)",
             "شارة": "badge-ibdal",
             "الجذر": clean_root_str,
+            "الوزن": "اِفْتَعَلَ",
             "الأصل المفترض": f"اِ{r1}ْتَ{r2}َ{r3}",
             "التعليل التعليمي": f"وقعت تاء صيغة (اِفْتَعَلَ) بعد حرف الجهر ({r1})، فُقلبت التاء دالاً للمجانسة الصوتية، فصارت ({word})."
         }
 
     # 3. إبدال الواو تاءً وإدغامها (مثل: اتصل، اتقى)
     if word.startswith(('ات', 'إت', 'اِت')) or 'تَّ' in word or 'تّ' in word:
+        educational_pattern = "اِفْتَعَى" if word.endswith(('ى', 'ي')) else "اِفْتَعَلَ"
         return {
             "نوع التغيير": "إبدال وإدغام (إبدال الواو تاءً)",
             "شارة": "badge-ibdal",
             "الجذر": clean_root_str,
+            "الوزن": educational_pattern,
             "الأصل المفترض": f"اِوْتَ{r2}َ{r3}",
-            "التعليل التعليمي": f"وقعت الواو فاءً في صيغة (اِفْتَعَلَ)، فُقلبت الواو تاءً وأُدغمت في تاء افتعل للتخفيف، فصارت ({word})."
+            "التعليل التعليمي": f"وقعت الواو فاءً في صيغة ({educational_pattern})، فُقلبت الواو تاءً وأُدغمت في تاء افتعل للتخفيف، فصارت ({word})."
         }
 
-    # 4. الإدغام الصرفي في المضعّف
+    # 4. الإدغام الصرفي في المضعّف (مثل: عدَّ، استقرَّ)
     if r2 == r3 or 'ّ' in word:
         if len(word) <= 4 or word.startswith(('است', 'اِست')):
+            educational_pattern = "اِسْتَفْعَلَ" if word.startswith(('است', 'اِست')) else "فَعَلَ"
             return {
                 "نوع التغيير": "إدغام صرفي (تضعيف)",
                 "شارة": "badge-idgham",
                 "الجذر": clean_root_str,
+                "الوزن": educational_pattern,
                 "الأصل المفترض": f"{r1}َ{r2}َ{r2}",
                 "التعليل التعليمي": f"اجتمع حرفان متماثلان متحركان ({r2} + {r2})، فُسكن الأول وأُدغم في الثاني طلباً للخفة، فصارا حرفاً مشدداً ({word})."
             }
 
-    # 5. الإعلال بالنقل والتسكين
+    # 5. الإعلال بالنقل والتسكين (مثل: يقول، يبيع)
     if (r2 in ['و', 'ي']) and word.startswith(('ي', 'ت', 'أ', 'ن')) and any(v in word for v in ['و', 'ي']) and len(word) >= 4:
         vowel_letter = 'و' if 'و' in word else 'ي'
         return {
             "نوع التغيير": "إعلال بالنقل والتسكين",
             "شارة": "badge-ilal",
             "الجذر": clean_root_str,
+            "الوزن": "يَفْعُلُ" if vowel_letter == 'و' else "يَفْعِلُ",
             "الأصل المفترض": f"يَ{r1}ْ{vowel_letter}ُ{r3}",
             "التعليل التعليمي": f"تحركت عين الفعل المعتلة ({r2}) وكان ما قبلها ساكناً صحيحاً ({r1})، فُنقلت حركة العين إلى الساكن قبلها لثقل الحركة على حرف العلة، فصارت ({word})."
         }
 
-    # 6. الإعلال بالقلب
+    # 6. الإعلال بالقلب (مثل: قال، دعا)
     if (r2 in ['و', 'ي']) and ('ا' in word or word.endswith('ى')) and len(word) <= 4:
+        educational_pattern = "فَعَلَ" if word.endswith('ا') else "فَعَى"
         return {
             "نوع التغيير": "إعلال بالقلب (قلب الواو/الياء ألفاً)",
             "شارة": "badge-ilal",
             "الجذر": clean_root_str,
+            "الوزن": educational_pattern,
             "الأصل المفترض": f"{r1}َوَلَ",
             "التعليل التعليمي": f"تحركت عين/لام الفعل المعتلة وانفتح ما قبلها ({r1}َ)، فُقلبت ألفاً طلباً للتخفيف، فصارت ({word})."
         }
 
-    # 7. الإعلال بالحذف
+    # 7. الإعلال بالحذف (مثل: قُل، عِد)
     if (r2 in ['و', 'ي'] or r1 in ['و']) and len(word) <= 3:
         return {
             "نوع التغيير": "إعلال بالحذف (التقاء الساكنين / حذف فاء المثال)",
             "شارة": "badge-ilal",
             "الجذر": clean_root_str,
+            "الوزن": "فُلْ" if len(word) <= 2 else "يَعِلُ",
             "الأصل المفترض": f"اُ{r1}ْ{r2}ُ{r3}" if len(word) <= 2 else f"يَوْ{r2}ِ{r3}",
             "التعليل التعليمي": f"حُذفت عين/فاء الفعل المعتلة منعاً لالتقاء الساكنين عند بناء الأمر أو لوقوع الواو بين فتحة وكسرة، فصارت ({word})."
         }
@@ -251,6 +255,7 @@ def explain_morphology(word, root_raw, pattern):
         "نوع التغيير": "سالم / قياسي",
         "شارة": "badge-salim",
         "الجذر": clean_root_str,
+        "الوزن": fallback_pattern,
         "الأصل المفترض": word,
         "التعليل التعليمي": "الكلمة تجري على الأصل القياسي دون إعلال أو إبدال ظاهر."
     }
@@ -277,22 +282,19 @@ if user_input:
     else:
         top = analyses[0]
         root_raw = top.get('root', '')
-        
-        # استخراج الوزن وتنظيفه من الأرقام عبر دالة clean_pattern
-        raw_pattern = top.get('pattern', 'غير محدد')
-        pattern = clean_pattern(raw_pattern)
+        pattern = top.get('pattern', 'غير محدد')
         
         res = explain_morphology(word, root_raw, pattern)
         
         st.markdown("---")
         
-        # كرت النتائج المنقح بصرياً وصرفياً
+        # كرت النتائج
         st.markdown(f"""
         <div class="result-card">
             <h3>النتيجة الصرفية للكلمة: <span style="color: #2a5298;">({word})</span></h3>
             <p><span class="{res['شارة']}">{res['نوع التغيير']}</span></p>
             <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
-            <p>🌱 <b>الجذر الصرفي:</b> <span class="custom-tag">{res['الجذر']}</span> &nbsp;&nbsp;|&nbsp;&nbsp; ⚖️ <b>الوزن الصرفي:</b> <span class="custom-tag">{pattern}</span></p>
+            <p>🌱 <b>الجذر الصرفي:</b> <span class="custom-tag">{res['الجذر']}</span> &nbsp;&nbsp;|&nbsp;&nbsp; ⚖️ <b>الوزن الصرفي:</b> <span class="custom-tag">{res['الوزن']}</span></p>
             <p>🏛️ <b>الأصل المفترض قبل التغيير:</b> <span class="custom-tag" style="color: #c53030; font-size: 1.1rem;">{res['الأصل المفترض']}</span></p>
             <div class="explanation-box">
                 <b>🎓 الشرح والتعليل التعليمي:</b><br>
