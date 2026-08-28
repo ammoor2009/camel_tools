@@ -134,6 +134,22 @@ def load_analyzer():
 
 analyzer = load_analyzer()
 
+# دالة تحويل أرقام الميزان الصرفي (1, 2, 3) إلى أحرف الميزان (ف, ع, ل)
+def clean_pattern(pattern_str):
+    if not pattern_str or pattern_str == "غير محدد":
+        return "غير محدد"
+    
+    replacements = {
+        '1': 'ف',
+        '2': 'ع',
+        '3': 'ل',
+        '4': 'ل'
+    }
+    for num, char in replacements.items():
+        pattern_str = pattern_str.replace(num, char)
+        
+    return pattern_str
+
 # تنظيف وتجهيز حروف الجذر المعطوبة من المحرك
 def sanitize_root(root_raw, word):
     if not root_raw or '.' not in root_raw:
@@ -261,7 +277,11 @@ if user_input:
     else:
         top = analyses[0]
         root_raw = top.get('root', '')
-        pattern = top.get('pattern', 'غير محدد')
+        
+        # استخراج الوزن وتنظيفه من الأرقام عبر دالة clean_pattern
+        raw_pattern = top.get('pattern', 'غير محدد')
+        pattern = clean_pattern(raw_pattern)
+        
         res = explain_morphology(word, root_raw, pattern)
         
         st.markdown("---")
